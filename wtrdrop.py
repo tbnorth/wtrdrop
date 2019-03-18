@@ -70,8 +70,12 @@ def get_options(args=None):
     return opt
 
 
-def make_kernel(opt):
+def make_kernel(opt, elev_ds):
     return np.ones((7, 7))
+
+
+def dbg(*s):
+    print(s)
 
 
 def rip(opt, elev, ripar, kernel, row, col, level):
@@ -79,16 +83,17 @@ def rip(opt, elev, ripar, kernel, row, col, level):
     kc = (kernel.shape[1] - 1) // 2
     r0 = row - kr
     c0 = col - kc
-    print("-----------------")
+    dbg("-----------------", level, elev[row, col])
     window = elev[r0 : r0 + kernel.shape[0], c0 : c0 + kernel.shape[1]]
+    dbg(window.astype(int))
     window = window - elev[row, col] < level
-    print(window)
+    dbg(window)
     blobs, blobs_n = label(window)
-    print(blobs)
+    dbg(blobs)
     stream_label = blobs[kr, kc]
-    print(kr, kc, stream_label)
+    dbg(kr, kc, stream_label)
     blobs = blobs == stream_label
-    print(blobs)
+    dbg(blobs)
     ripar[r0 : r0 + 2*kr+1, c0 : c0 + 2*kc+1] += blobs
 
 
@@ -108,7 +113,7 @@ def main():
 
     ripar = [np.zeros_like(stream) for i in opt.levels]
 
-    kernel = make_kernel(opt)
+    kernel = make_kernel(opt, elev_ds)
 
     for row in range(stream.shape[0]):
         for col in range(stream.shape[1]):
