@@ -71,6 +71,7 @@ def get_options(args=None):
 
 
 def make_kernel(opt, elev_ds):
+    _, w, _, _, _, h = elev_ds.GetGeoTransform()
     return np.ones((7, 7))
 
 
@@ -94,7 +95,7 @@ def rip(opt, elev, ripar, kernel, row, col, level):
     dbg(kr, kc, stream_label)
     blobs = blobs == stream_label
     dbg(blobs)
-    ripar[r0 : r0 + 2*kr+1, c0 : c0 + 2*kc+1] += blobs
+    ripar[r0 : r0 + 2*kr+1, c0 : c0 + 2*kc+1] += blobs * kernel
 
 
 def do_cell(opt, elev, ripar, kernel, row, col):
