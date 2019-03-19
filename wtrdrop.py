@@ -72,10 +72,17 @@ def get_options(args=None):
 
 def make_kernel(opt, elev_ds):
     _, w, _, _, _, h = elev_ds.GetGeoTransform()
-    return np.ones((7, 7))
+    szx = int(opt.radius / w)
+    szy = int(opt.radius / abs(h))
+    if szx % 2 == 0:
+        szx += 1
+    if szy % 2 == 0:
+        szy += 1
+    return np.ones((szx, szy))
 
 
 def dbg(*s):
+    return
     print(s)
 
 
@@ -84,7 +91,7 @@ def rip(opt, elev, ripar, kernel, row, col, level):
     kc = (kernel.shape[1] - 1) // 2
     r0 = row - kr
     c0 = col - kc
-    dbg("-----------------", level, elev[row, col])
+    dbg("-----------------", level, elev[row, col], row, col)
     window = elev[r0 : r0 + kernel.shape[0], c0 : c0 + kernel.shape[1]]
     dbg(window.astype(int))
     window = window - elev[row, col] < level
@@ -95,7 +102,7 @@ def rip(opt, elev, ripar, kernel, row, col, level):
     dbg(kr, kc, stream_label)
     blobs = blobs == stream_label
     dbg(blobs)
-    ripar[r0 : r0 + 2*kr+1, c0 : c0 + 2*kc+1] += blobs * kernel
+    ripar[r0 : r0 + 2 * kr + 1, c0 : c0 + 2 * kc + 1] += blobs * kernel
 
 
 def do_cell(opt, elev, ripar, kernel, row, col):
@@ -112,14 +119,19 @@ def main():
     elev = elev_ds.GetRasterBand(1).ReadAsArray()
     stream = stream_ds.GetRasterBand(1).ReadAsArray()
 
-    ripar = [np.zeros_like(stream) for i in opt.levels]
+    ripar = [np.zeros_like(stream, dtype=float) for i in opt.levels]
 
     kernel = make_kernel(opt, elev_ds)
 
+    done = 0
+    todo = (stream == 1).sum()
     for row in range(stream.shape[0]):
         for col in range(stream.shape[1]):
             if stream[row, col] == 1:
                 do_cell(opt, elev, ripar, kernel, row, col)
+                done += 1
+                if done % 1000 == 0:
+                    print("%s/%s" % (done, todo))
 
     for level_i, level in enumerate(opt.levels):
         filename = "rip%s.tif" % level
