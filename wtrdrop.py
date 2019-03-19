@@ -15,6 +15,8 @@ Terry N. Brown terrynbrown@gmail.com Mon Mar 18 12:24:13 EDT 2019
 
 import argparse
 
+from math import sqrt
+
 import numpy as np
 
 from osgeo import gdal
@@ -72,13 +74,22 @@ def get_options(args=None):
 
 def make_kernel(opt, elev_ds):
     _, w, _, _, _, h = elev_ds.GetGeoTransform()
-    szx = int(opt.radius / w)
-    szy = int(opt.radius / abs(h))
+    szx = int(opt.radius / w) * 2
+    szy = int(opt.radius / abs(h)) * 2
+    # make sure they're odd numbers so there's a central row / column
     if szx % 2 == 0:
         szx += 1
     if szy % 2 == 0:
         szy += 1
-    return np.ones((szx, szy))
+    kernel = np.zeros((szy, szx), dtype=float)
+    for r in range(szy):
+        for c in range(szx):
+            dx = (szx // 2 - c) * w
+            dy = (szy // 2 - r) * h
+            d = sqrt(dx * dx + dy * dy)
+            if opt.radius - d > 0:
+                kernel[r, c] = opt.radius - d
+    return kernel
 
 
 def dbg(*s):
