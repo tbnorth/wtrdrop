@@ -44,6 +44,11 @@ def make_parser():
         metavar='LEVEL',
         help="Height(s) (m) for riparian threshold",
     )
+    parser.add_argument(
+        "--positive",
+        action='store_true',
+        help="consider only 0-level, not <level, values riparian",
+    )
     parser.add_argument('elevation', type=str, help="Path to elevation grid")
     parser.add_argument('stream', type=str, help="Path to stream grid")
 
@@ -105,7 +110,10 @@ def rip(opt, elev, ripar, kernel, row, col, level):
     dbg("-----------------", level, elev[row, col], row, col)
     window = elev[r0 : r0 + kernel.shape[0], c0 : c0 + kernel.shape[1]]
     dbg(window.astype(int))
-    window = window - elev[row, col] < level
+    if opt.positive:
+        window = 0 <= window - elev[row, col] < level
+    else:
+        window = window - elev[row, col] < level
     dbg(window)
     blobs, blobs_n = label(window)
     dbg(blobs)
